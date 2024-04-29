@@ -3,7 +3,7 @@ use std::{
     ops::{Index, IndexMut},
 };
 
-use crate::{hash_index::HashIndex, index_tracker::IndexTracker};
+use crate::{hash_index::HashIndex, index_tracker::{self, IndexTracker}};
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct HashMapFull;
@@ -16,6 +16,13 @@ pub struct HashMapAlloc<K: HashIndex, V> {
 impl<K: HashIndex, V> HashMapAlloc<K, V> {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    pub unsafe fn new_from(hash_map: HashMap<K, V>, index_tracker: IndexTracker<K>) -> Self {
+        Self {
+            hash_map,
+            index_tracker,
+        }
     }
 
     pub fn with_hasher(hash_builder: std::hash::RandomState) -> Self {
@@ -112,12 +119,28 @@ impl<K: HashIndex, V> HashMapAlloc<K, V> {
         &self.hash_map
     }
 
+    pub unsafe fn get_hash_map_mut(&mut self) -> &mut HashMap<K, V> {
+        &mut self.hash_map
+    }
+
     pub fn extract_hash_map(self) -> HashMap<K, V> {
         self.hash_map
     }
 
     pub fn get_index_tracker(&self) -> &IndexTracker<K> {
         &self.index_tracker
+    }
+
+    pub unsafe fn get_index_tracker_mut(&mut self) -> &mut IndexTracker<K> {
+        &mut self.index_tracker
+    }
+
+    pub fn extract_index_tracker(self) -> IndexTracker<K> {
+        self.index_tracker
+    }
+
+    pub fn extract(self) -> (HashMap<K, V>, IndexTracker<K>) {
+        (self.hash_map, self.index_tracker)
     }
 
     pub fn push(&mut self, value: V) -> Result<K, HashMapFull> {
@@ -183,5 +206,19 @@ impl<K: HashIndex, V> IntoIterator for HashMapAlloc<K, V> {
     type IntoIter = std::collections::hash_map::IntoIter<K, V>;
     fn into_iter(self) -> Self::IntoIter {
         self.hash_map.into_iter()
+    }
+}
+impl<'a, K: HashIndex, V> IntoIterator for &'a HashMapAlloc<K, V> {
+    type Item = (&'a K, &'a V);
+    type IntoIter = std::collections::hash_map::Iter<'a, K, V>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.hash_map.iter()
+    }
+}
+impl<'a, K: HashIndex, V> IntoIterator for &'a mut HashMapAlloc<K, V> {
+    type Item = (&'a K, &'a mut V);
+    type IntoIter = std::collections::hash_map::IterMut<'a, K, V>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.hash_map.iter_mut()
     }
 }
