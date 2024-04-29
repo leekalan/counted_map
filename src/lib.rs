@@ -1,9 +1,9 @@
-pub mod hash_index;
 pub mod counter;
-pub mod index_tracker;
+pub mod hash_index;
 pub mod hash_map_alloc;
+pub mod index_tracker;
 
-pub use hash_index::HashIndex;
 pub use counter::Counter;
-pub use index_tracker::IndexTracker;
+pub use hash_index::HashIndex;
 pub use hash_map_alloc::HashMapAlloc;
+pub use index_tracker::IndexTracker;
