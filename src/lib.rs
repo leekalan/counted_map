@@ -1,9 +1,16 @@
+pub mod counted_map;
 pub mod counter;
 pub mod hash_index;
-pub mod hash_map_alloc;
-pub mod index_tracker;
+pub mod hash_map_full;
+pub mod reassignable_counted_map;
+pub mod removable_counter;
+
+pub use hash_index::HashIndex;
 
 pub use counter::Counter;
-pub use hash_index::HashIndex;
-pub use hash_map_alloc::HashMapAlloc;
-pub use index_tracker::IndexTracker;
+pub use removable_counter::RemovableCounter;
+
+pub use hash_map_full::HashMapFull;
+
+pub use counted_map::CountedMap;
+pub use reassignable_counted_map::ReassignableCountedMap;

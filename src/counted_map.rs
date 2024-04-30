@@ -3,26 +3,20 @@ use std::{
     ops::{Index, IndexMut},
 };
 
-use crate::{hash_index::HashIndex, index_tracker::{self, IndexTracker}};
-
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct HashMapFull;
+use crate::{Counter, HashIndex, HashMapFull};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct HashMapAlloc<K: HashIndex, V> {
+pub struct CountedMap<K: HashIndex, V> {
     hash_map: HashMap<K, V>,
-    index_tracker: IndexTracker<K>,
+    counter: Counter<K>,
 }
-impl<K: HashIndex, V> HashMapAlloc<K, V> {
+impl<K: HashIndex, V> CountedMap<K, V> {
     pub fn new() -> Self {
         Self::default()
     }
 
-    pub unsafe fn new_from(hash_map: HashMap<K, V>, index_tracker: IndexTracker<K>) -> Self {
-        Self {
-            hash_map,
-            index_tracker,
-        }
+    pub unsafe fn new_unsafe(hash_map: HashMap<K, V>, counter: Counter<K>) -> Self {
+        Self { hash_map, counter }
     }
 
     pub fn with_hasher(hash_builder: std::hash::RandomState) -> Self {
@@ -60,7 +54,7 @@ impl<K: HashIndex, V> HashMapAlloc<K, V> {
 
     pub fn clear(&mut self) {
         self.hash_map.clear();
-        self.index_tracker = IndexTracker::default();
+        self.counter = Counter::default();
     }
 
     pub fn reserve(&mut self, additional: usize) {
@@ -83,7 +77,7 @@ impl<K: HashIndex, V> HashMapAlloc<K, V> {
     }
 
     pub fn drain(&mut self) -> std::collections::hash_map::Drain<'_, K, V> {
-        self.index_tracker = IndexTracker::default();
+        self.counter = Counter::default();
         self.hash_map.drain()
     }
 
@@ -111,10 +105,6 @@ impl<K: HashIndex, V> HashMapAlloc<K, V> {
         self.hash_map.values_mut()
     }
 
-    pub fn entry(&mut self, key: K) -> std::collections::hash_map::Entry<'_, K, V> {
-        self.hash_map.entry(key)
-    }
-
     pub fn get_hash_map(&self) -> &HashMap<K, V> {
         &self.hash_map
     }
@@ -127,24 +117,24 @@ impl<K: HashIndex, V> HashMapAlloc<K, V> {
         self.hash_map
     }
 
-    pub fn get_index_tracker(&self) -> &IndexTracker<K> {
-        &self.index_tracker
+    pub fn get_counter(&self) -> &Counter<K> {
+        &self.counter
     }
 
-    pub unsafe fn get_index_tracker_mut(&mut self) -> &mut IndexTracker<K> {
-        &mut self.index_tracker
+    pub unsafe fn get_counter_mut(&mut self) -> &mut Counter<K> {
+        &mut self.counter
     }
 
-    pub fn extract_index_tracker(self) -> IndexTracker<K> {
-        self.index_tracker
+    pub fn extract_counter(self) -> Counter<K> {
+        self.counter
     }
 
-    pub fn extract(self) -> (HashMap<K, V>, IndexTracker<K>) {
-        (self.hash_map, self.index_tracker)
+    pub fn extract(self) -> (HashMap<K, V>, Counter<K>) {
+        (self.hash_map, self.counter)
     }
 
     pub fn push(&mut self, value: V) -> Result<K, HashMapFull> {
-        let index = self.index_tracker.next().ok_or(HashMapFull)?;
+        let index = self.counter.next().ok_or(HashMapFull)?;
         if self.hash_map.insert(index, value).is_some() {
             panic!("value already exists, this should not happen!")
         }
@@ -158,64 +148,52 @@ impl<K: HashIndex, V> HashMapAlloc<K, V> {
     pub fn get_mut(&mut self, index: &K) -> Option<&mut V> {
         self.hash_map.get_mut(index)
     }
-
-    pub fn remove(&mut self, index: K) -> Option<V> {
-        let result = self.hash_map.remove(&index)?;
-        self.index_tracker.free(index);
-        Some(result)
-    }
-
-    pub fn remove_entry(&mut self, index: K) -> Option<(K, V)> {
-        let result = self.hash_map.remove_entry(&index)?;
-        self.index_tracker.free(index);
-        Some(result)
-    }
 }
-impl<K: HashIndex, V> Default for HashMapAlloc<K, V> {
+impl<K: HashIndex, V> Default for CountedMap<K, V> {
     fn default() -> Self {
         Self {
             hash_map: HashMap::default(),
-            index_tracker: IndexTracker::default(),
+            counter: Counter::default(),
         }
     }
 }
-impl<K: HashIndex, V> AsRef<HashMap<K, V>> for HashMapAlloc<K, V> {
+impl<K: HashIndex, V> AsRef<HashMap<K, V>> for CountedMap<K, V> {
     fn as_ref(&self) -> &HashMap<K, V> {
         self.get_hash_map()
     }
 }
-impl<K: HashIndex, V> AsRef<IndexTracker<K>> for HashMapAlloc<K, V> {
-    fn as_ref(&self) -> &IndexTracker<K> {
-        self.get_index_tracker()
+impl<K: HashIndex, V> AsRef<Counter<K>> for CountedMap<K, V> {
+    fn as_ref(&self) -> &Counter<K> {
+        self.get_counter()
     }
 }
-impl<K: HashIndex, V> Index<&K> for HashMapAlloc<K, V> {
+impl<K: HashIndex, V> Index<&K> for CountedMap<K, V> {
     type Output = V;
 
     fn index(&self, index: &K) -> &Self::Output {
         self.get(index).unwrap()
     }
 }
-impl<K: HashIndex, V> IndexMut<&K> for HashMapAlloc<K, V> {
+impl<K: HashIndex, V> IndexMut<&K> for CountedMap<K, V> {
     fn index_mut(&mut self, index: &K) -> &mut Self::Output {
         self.get_mut(index).unwrap()
     }
 }
-impl<K: HashIndex, V> IntoIterator for HashMapAlloc<K, V> {
+impl<K: HashIndex, V> IntoIterator for CountedMap<K, V> {
     type Item = (K, V);
     type IntoIter = std::collections::hash_map::IntoIter<K, V>;
     fn into_iter(self) -> Self::IntoIter {
         self.hash_map.into_iter()
     }
 }
-impl<'a, K: HashIndex, V> IntoIterator for &'a HashMapAlloc<K, V> {
+impl<'a, K: HashIndex, V> IntoIterator for &'a CountedMap<K, V> {
     type Item = (&'a K, &'a V);
     type IntoIter = std::collections::hash_map::Iter<'a, K, V>;
     fn into_iter(self) -> Self::IntoIter {
         self.hash_map.iter()
     }
 }
-impl<'a, K: HashIndex, V> IntoIterator for &'a mut HashMapAlloc<K, V> {
+impl<'a, K: HashIndex, V> IntoIterator for &'a mut CountedMap<K, V> {
     type Item = (&'a K, &'a mut V);
     type IntoIter = std::collections::hash_map::IterMut<'a, K, V>;
     fn into_iter(self) -> Self::IntoIter {

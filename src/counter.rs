@@ -16,12 +16,6 @@ impl<T: HashIndex> Counter<T> {
     pub fn get_count(&self) -> &T {
         &self.count
     }
-    pub unsafe fn get_count_mut(&mut self) -> &mut T {
-        &mut self.count
-    }
-    pub fn extract(self) -> T {
-        self.count
-    }
 }
 impl<T: HashIndex> Iterator for Counter<T> {
     type Item = T;
