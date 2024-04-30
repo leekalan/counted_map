@@ -1,7 +1,7 @@
 use core::{fmt::Debug, hash::Hash};
 
 pub trait HashIndex:
-    Debug + Default + Sized + Clone + Copy + PartialEq + Eq + PartialOrd + Ord + Hash + 'static
+    Debug + Default + Sized + Clone + PartialEq + Eq + PartialOrd + Hash + 'static
 {
     fn increment(self) -> Option<Self>;
 }

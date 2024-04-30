@@ -38,7 +38,8 @@ impl<T: HashIndex> RemovableCounter<T> {
     }
 
     pub fn free(&mut self, index: T) -> Result<(), T> {
-        if index < *self.counter.get_count() && self.released_set.insert(index) {
+        if &index < self.counter.get_count() && self.released_set.contains(&index) {
+            self.released_set.insert(index.clone());
             self.released_vec.push(index);
             Ok(())
         } else {
@@ -47,7 +48,8 @@ impl<T: HashIndex> RemovableCounter<T> {
     }
 
     pub unsafe fn free_unchecked(&mut self, index: T) -> Result<(), T> {
-        if self.released_set.insert(index) {
+        if self.released_set.contains(&index) {
+            self.released_set.insert(index.clone());
             self.released_vec.push(index);
             Ok(())
         } else {

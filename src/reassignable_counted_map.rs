@@ -135,7 +135,7 @@ impl<K: HashIndex, V> ReassignableCountedMap<K, V> {
 
     pub fn push(&mut self, value: V) -> Result<K, HashMapFull> {
         let index = self.counter.next().ok_or(HashMapFull)?;
-        if self.hash_map.insert(index, value).is_some() {
+        if self.hash_map.insert(index.clone(), value).is_some() {
             panic!("value already exists, this should not happen!")
         }
         Ok(index)

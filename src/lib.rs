@@ -4,8 +4,10 @@ pub mod hash_index;
 pub mod hash_map_full;
 pub mod reassignable_counted_map;
 pub mod removable_counter;
+pub mod unique_id;
 
 pub use hash_index::HashIndex;
+pub use unique_id::UniqueId;
 
 pub use counter::Counter;
 pub use removable_counter::RemovableCounter;

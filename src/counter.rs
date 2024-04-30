@@ -20,7 +20,7 @@ impl<T: HashIndex> Counter<T> {
 impl<T: HashIndex> Iterator for Counter<T> {
     type Item = T;
     fn next(&mut self) -> Option<Self::Item> {
-        let new = self.count.increment()?;
+        let new = self.count.clone().increment()?;
         Some(mem::replace(&mut self.count, new))
     }
 }
