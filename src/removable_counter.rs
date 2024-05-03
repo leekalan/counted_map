@@ -38,7 +38,7 @@ impl<T: HashIndex> RemovableCounter<T> {
     }
 
     pub fn free(&mut self, index: T) -> Result<(), T> {
-        if &index < self.counter.get_count() && self.released_set.contains(&index) {
+        if &index < self.counter.get_count() && !self.released_set.contains(&index) {
             self.released_set.insert(index.clone());
             self.released_vec.push(index);
             Ok(())
