@@ -135,13 +135,13 @@ impl<K: HashIndex, V> CountedMap<K, V> {
 
     pub fn push(&mut self, value: V) -> Result<K, HashMapFull<V>> {
         let Some(index) = self.counter.next() else {
-            return Err(HashMapFull(value))
+            return Err(HashMapFull(value));
         };
 
         if self.hash_map.insert(index.clone(), value).is_some() {
             panic!("value already exists, this should not happen!")
         }
-        
+
         Ok(index)
     }
 
